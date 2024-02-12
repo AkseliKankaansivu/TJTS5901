@@ -4,6 +4,8 @@
   "description": "Group project for course TJTS5901 - Continuous Software Engineering",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "dev" : "nodemon index.js",
     "test": "jest"
   },
   "keywords": [],
@@ -14,6 +16,7 @@
     "jest": "^29.7.0"
   },
   "devDependencies": {
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.3"
   }
 }

@@ -61,7 +61,7 @@ let orders = [
 
     // App logic here!
     // First we need to validate the order against the latest market data
-    // Maybe something like checkForSale() or matchOrders()
+    // then maybe something like checkForSale() or matchOrders()
 
     response.json(order)
   })

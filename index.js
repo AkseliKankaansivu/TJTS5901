@@ -44,7 +44,8 @@ getData()
 
 // Bid = User wants to buy, Max price user is willing to pay, amount user is willing to buy
 // Offer = user wants to sell, Min price user is willing to sell, amount user is willing to sell
-let orders = [
+
+/*let orders = [
     {
       id: 1,
       order: "Bid",
@@ -63,7 +64,10 @@ let orders = [
       price: 180.99,
       quantity: 1500
     }
-  ]
+  ]*/
+
+// empty array for easier testing
+let orders = []
 
 // Store matches that have happened after submitting an order here
 let trades = []
@@ -126,6 +130,9 @@ app.post('/api/orders', (request, response) => {
 
   // Check if the price of the order is inside our margin
   if (order.price < lastPrice * 1.1 && order.price > lastPrice * 0.9) {
+    
+    response.json(order)
+
     console.log('order price is inside the price margin, processing...')
     orders = orders.concat(order)
     // New order is stored, next we need to check for matching orders    
@@ -142,16 +149,15 @@ app.post('/api/orders', (request, response) => {
       error: 'order price is outside of the price margin'
     })
   }
-
-  response.json(order)
-
 })
 
 // When an order has been submitted, check for a match and create a new trade if found
 const matchOrders = () => {
   console.log("Matching orders!")
   // No need to match with less than 2 orders
-  if (orders.length < 1) return
+  if (orders.length < 1) {
+    return
+  }
 
   // Try to match using the latest order
   const latestOrder = orders[orders.length-1]
@@ -169,6 +175,8 @@ const matchOrders = () => {
 
 
   // Get all bids/offers depending on which way we are operating and find matches
+
+  // Logic for matching a Bid
   if (latestOrder.order === "Bid") {
     possibleMatches = getAllOffers()
     console.log(orders)
@@ -195,15 +203,18 @@ const matchOrders = () => {
     // Figure out the new quantities and the trade quantity
     let tradeQuantity = 0
     if (latestOrder.quantity > lowestPriceOffer.quantity) {
-      tradeQuantity = latestOrder.quantity - lowestPriceOffer.quantity
+      tradeQuantity = lowestPriceOffer.quantity
       // Calculate the new quantity and remove filled offer
       orders = orders.filter((order) => order.id != lowestPriceOffer.id)
       orders[orders.indexOf(latestOrder)].quantity -= lowestPriceOffer.quantity
     } else {
       tradeQuantity = latestOrder.quantity
       // Calculate the new quantities, order with a 0 quantity will stop the recursion on the next round
-      orders[orders.indexOf(latestOrder)].quantity = 0
       orders[orders.indexOf(lowestPriceOffer)].quantity = lowestPriceOffer.quantity - latestOrder.quantity
+      orders[orders.indexOf(latestOrder)].quantity = 0
+      //console.log(lowestPriceOffer.quantity - latestOrder.quantity)
+      //console.log(orders.indexOf(lowestPriceOffer))
+      
     }
 
 
@@ -220,21 +231,62 @@ const matchOrders = () => {
     // Now we need to try to match again recursively until the quantity of the latest bid goes to 0 or there are no more matches
     matchOrders()
 
-    // TODO!!!
+    // Logic for matching an Offer
   } else {
     possibleMatches = getAllBids()
 
-    for(let i = 0; i < possibleMatches.length; i++) {
-      
+    console.log(orders)
+    console.log(possibleMatches)
+    const bidsWithGoodPrice = possibleMatches.filter((order) => order.price >= latestOrder.price)
+
+    if (bidsWithGoodPrice.length < 1) {
+      console.log("No Bids with a high enough price were found, stopping matching")
+      return
     }
 
+    let highestPriceBid = bidsWithGoodPrice[0]
+
+    if(bidsWithGoodPrice.length > 1) {
+      // Try to match beginning from the 
+      for(let i = 1; i < bidsWithGoodPrice.length; i++) {
+        if (bidsWithGoodPrice[i].price > highestPriceBid.price) {
+          highestPriceBid = bidsWithGoodPrice[i]
+        }
+      }
+    }
+
+    // Now we should have found the oldest bid with the highest price from all of the bids with a higher or equal price of the offer
+    // Figure out the new quantities and the trade quantity
+    let tradeQuantity = 0
+    if (latestOrder.quantity > highestPriceBid.quantity) {
+      tradeQuantity = highestPriceBid.quantity
+      // Calculate the new quantity and remove filled bid
+      orders = orders.filter((order) => order.id != highestPriceBid.id)
+      orders[orders.indexOf(latestOrder)].quantity -= highestPriceBid.quantity
+    } else {
+      tradeQuantity = latestOrder.quantity
+      // Calculate the new quantities, order with a 0 quantity will stop the recursion on the next round
+      //console.log(highestPriceBid.quantity - latestOrder.quantity)
+      orders[orders.indexOf(highestPriceBid)].quantity = highestPriceBid.quantity - latestOrder.quantity
+      orders[orders.indexOf(latestOrder)].quantity = 0
+      //console.log(orders.indexOf(highestPriceBid))      
+    }
+
+
+    const trade = {
+      time: new Date(),
+      price: highestPriceBid.price,
+      quantity: tradeQuantity
+    }
+
+    trades = trades.concat(trade)
+    console.log("New Trade!")
+    console.log(trade)
+
+    // Now we need to try to match again recursively until the quantity of the latest bid goes to 0 or there are no more matches
+    matchOrders()
+
   }
-
-  // Try to match beginning from the 
-  for(let i = 0; i < orders.length-1; i++) {
-
-  }
-
 }
 
 // Function to get all Bids from all of the orders

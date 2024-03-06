@@ -3,6 +3,6 @@ Content-Type: application/json
 
 {
     "order": "Offer",
-    "price": 175.00,
-    "quantity": 500
+    "price": 182.00,
+    "quantity": 300
 }

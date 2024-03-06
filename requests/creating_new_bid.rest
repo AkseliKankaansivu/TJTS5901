@@ -2,7 +2,7 @@ POST http://localhost:8080/api/orders
 Content-Type: application/json
 
 {
-    "order": "Bid",
-    "price": 180.99,
-    "quantity": 2000
+    "order": "Offer",
+    "price": 180.00,
+    "quantity": 100
 }

@@ -24,9 +24,15 @@ const getData = () => {
   // The whole response has been received. Print out the result.
   response.on('end', () => {
       if (response.statusCode === 200 || response.statusCode === 203) {
-          console.log(JSON.parse(data));
-          lastPrice = JSON.parse(data).last[0];
-          console.log(lastPrice)
+        console.log("Initializin price data!\n")
+        console.log("Data receive from the stock API:")
+        console.log(JSON.parse(data));
+
+        lastPrice = JSON.parse(data).last[0];
+
+        console.log("Current last price:")
+        console.log(lastPrice)
+        console.log()
       } else {
           console.log(`Failed to retrieve data: ${response.statusCode}`);
       }
@@ -73,14 +79,23 @@ let orders = []
 let trades = []
 
 
+// REST End Points for Trade Data, Order Data and submitting Orders
+
 app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
 
+// End point for Trade Data
+app.get('/api/trades', (request, response) => {
+  response.json(trades)
+})
+
+// End point for Order Data
 app.get('/api/orders', (request, response) => {
   response.json(orders)
 })
 
+// End point for a single order by id
 app.get('/api/orders/:id', (request, response) => {
   const id = Number(request.params.id)
   const order = orders.find(order => order.id === id)
@@ -91,9 +106,11 @@ app.get('/api/orders/:id', (request, response) => {
     }
 })
 
+// End point for posting orders
 app.post('/api/orders', (request, response) => {
   const body = request.body
 
+  // Require order, price and quantity information
   if(!body.order || !body.price || !body.quantity) {
       return response.status(400).json({
           error: 'missing critical information'
@@ -108,8 +125,10 @@ app.post('/api/orders', (request, response) => {
   }    
 
   // App logic here!
-  // First we need to validate the order against the latest market data
-  // then maybe something like checkForSale() or matchOrders()
+
+  console.log("New Order received! \n")
+
+  // First we validate the order price
 
   // New Date to check if enough time has passed after the last api call
   const now = new Date()
@@ -131,20 +150,31 @@ app.post('/api/orders', (request, response) => {
   // Check if the price of the order is inside our margin
   if (order.price < lastPrice * 1.1 && order.price > lastPrice * 0.9) {
     
+    // Since the price is inside the margin, we need to send a response (200 OK)
     response.json(order)
 
-    console.log('order price is inside the price margin, processing...')
+    // Start processing order data for possible matches
+    console.log('order price is inside the price margin, processing... \n')
     orders = orders.concat(order)
     // New order is stored, next we need to check for matching orders    
     matchOrders()
+    console.log()
     // Some logs to help visualizing data
     console.log("Data after prosessing:\n")
+    console.log("Orders:")
     console.log(orders)
     console.log()
+    console.log("Trades:")
     console.log(trades)
     console.log()
+    console.log("-------------------------------------------------------------------------")
+    console.log()
   } else {
-    console.log('order price is outside the price margin')
+    // The order price was not inside the margin, send response (400 Bad Request)
+    console.log('order price is outside the price margin, order was not processed')
+    console.log()
+    console.log("-------------------------------------------------------------------------")
+    console.log()
     return response.status(400).json({
       error: 'order price is outside of the price margin'
     })
@@ -153,9 +183,10 @@ app.post('/api/orders', (request, response) => {
 
 // When an order has been submitted, check for a match and create a new trade if found
 const matchOrders = () => {
-  console.log("Matching orders!")
+  console.log("Matching orders!\n")
   // No need to match with less than 2 orders
-  if (orders.length < 1) {
+  if (orders.length < 2) {
+    console.log("Not enough orders to match, stopping matching")
     return
   }
 
@@ -165,8 +196,14 @@ const matchOrders = () => {
   // Make sure the latest offer has quantity left
   // If not, we stop matching
   if (latestOrder.quantity <= 0) {
-    console.log("Quantity 0, removing and stopping matching")
+    console.log("Quantity 0, removing and starting matching from the beginning")
     orders.pop()
+    
+    // We need to start from the beginning
+    // If there was a match with equal quantity, there should be another order with a quantity of 0
+    matchOrders()
+
+    // We need to stop this recursion here because we need to start a new recursion from the beginning without continuing this recursion
     return
   }
 
@@ -179,8 +216,12 @@ const matchOrders = () => {
   // Logic for matching a Bid
   if (latestOrder.order === "Bid") {
     possibleMatches = getAllOffers()
-    console.log(orders)
-    console.log(possibleMatches)
+
+    // Logs for debugging
+
+    // console.log(orders)
+    // console.log(possibleMatches)
+
     const offersWithGoodPrice = possibleMatches.filter((order) => order.price <= latestOrder.price)
 
     if (offersWithGoodPrice.length < 1) {
@@ -188,6 +229,7 @@ const matchOrders = () => {
       return
     }
 
+    // Start matching by finding the offer with the lowest price (going from oldest to newest)
     let lowestPriceOffer = offersWithGoodPrice[0]
 
     if(offersWithGoodPrice.length > 1) {
@@ -211,13 +253,10 @@ const matchOrders = () => {
       tradeQuantity = latestOrder.quantity
       // Calculate the new quantities, order with a 0 quantity will stop the recursion on the next round
       orders[orders.indexOf(lowestPriceOffer)].quantity = lowestPriceOffer.quantity - latestOrder.quantity
-      orders[orders.indexOf(latestOrder)].quantity = 0
-      //console.log(lowestPriceOffer.quantity - latestOrder.quantity)
-      //console.log(orders.indexOf(lowestPriceOffer))
-      
+      orders[orders.indexOf(latestOrder)].quantity = 0      
     }
 
-
+    // Creating and adding the new trade
     const trade = {
       time: new Date(),
       price: lowestPriceOffer.price,
@@ -225,8 +264,10 @@ const matchOrders = () => {
     }
 
     trades = trades.concat(trade)
-    console.log("New Trade!")
+
+    console.log("New Trade!\n")
     console.log(trade)
+    console.log()
 
     // Now we need to try to match again recursively until the quantity of the latest bid goes to 0 or there are no more matches
     matchOrders()
@@ -235,19 +276,22 @@ const matchOrders = () => {
   } else {
     possibleMatches = getAllBids()
 
-    console.log(orders)
-    console.log(possibleMatches)
+    // Logs for debugging
+    // console.log(orders)
+    // console.log(possibleMatches)
+
     const bidsWithGoodPrice = possibleMatches.filter((order) => order.price >= latestOrder.price)
 
+    // If there are no bids with a fitting price, stop matching
     if (bidsWithGoodPrice.length < 1) {
       console.log("No Bids with a high enough price were found, stopping matching")
       return
     }
 
+    // Start matching by finding the bid with the highest price (going from oldest to newest)
     let highestPriceBid = bidsWithGoodPrice[0]
 
-    if(bidsWithGoodPrice.length > 1) {
-      // Try to match beginning from the 
+    if(bidsWithGoodPrice.length > 1) {      
       for(let i = 1; i < bidsWithGoodPrice.length; i++) {
         if (bidsWithGoodPrice[i].price > highestPriceBid.price) {
           highestPriceBid = bidsWithGoodPrice[i]
@@ -266,13 +310,11 @@ const matchOrders = () => {
     } else {
       tradeQuantity = latestOrder.quantity
       // Calculate the new quantities, order with a 0 quantity will stop the recursion on the next round
-      //console.log(highestPriceBid.quantity - latestOrder.quantity)
       orders[orders.indexOf(highestPriceBid)].quantity = highestPriceBid.quantity - latestOrder.quantity
       orders[orders.indexOf(latestOrder)].quantity = 0
-      //console.log(orders.indexOf(highestPriceBid))      
     }
 
-
+    // Creating and adding the new trade
     const trade = {
       time: new Date(),
       price: highestPriceBid.price,
@@ -280,8 +322,10 @@ const matchOrders = () => {
     }
 
     trades = trades.concat(trade)
-    console.log("New Trade!")
+
+    console.log("New Trade!\n")
     console.log(trade)
+    console.log()
 
     // Now we need to try to match again recursively until the quantity of the latest bid goes to 0 or there are no more matches
     matchOrders()
@@ -308,4 +352,4 @@ const generateId = () => {
 
 const PORT = process.env.PORT || 8080
 app.listen(PORT)
-console.log(`Server running on port ${PORT}`)
+console.log(`Server running on port ${PORT}\n`)

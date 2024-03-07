@@ -3,6 +3,7 @@ const app = express()
 const https = require('https');
 const url = 'https://api.marketdata.app/v1/stocks/quotes/AAPL/'
 
+
 app.use(express.json())
 
 let lastPrice = 0
@@ -184,6 +185,7 @@ app.post('/api/orders', (request, response) => {
 // When an order has been submitted, check for a match and create a new trade if found
 const matchOrders = () => {
   console.log("Matching orders!\n")
+  console.log(orders)
   // No need to match with less than 2 orders
   if (orders.length < 2) {
     console.log("Not enough orders to match, stopping matching")
@@ -219,8 +221,8 @@ const matchOrders = () => {
 
     // Logs for debugging
 
-    // console.log(orders)
-    // console.log(possibleMatches)
+    //console.log(orders)
+    //console.log(possibleMatches)
 
     const offersWithGoodPrice = possibleMatches.filter((order) => order.price <= latestOrder.price)
 
@@ -325,7 +327,6 @@ const matchOrders = () => {
 
     console.log("New Trade!\n")
     console.log(trade)
-    console.log()
 
     // Now we need to try to match again recursively until the quantity of the latest bid goes to 0 or there are no more matches
     matchOrders()
@@ -351,5 +352,19 @@ const generateId = () => {
 }
 
 const PORT = process.env.PORT || 8080
-app.listen(PORT)
-console.log(`Server running on port ${PORT}\n`)
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}\n`);
+});
+
+const getTrades = () => {
+  console.log(trades.length);
+  return trades;
+};
+
+// Function to close the server connection
+const closeServer = () => {
+  server.close();
+  console.log('Server connection closed.');
+};
+
+module.exports = { app, closeServer, getData, matchOrders, orders, getTrades };

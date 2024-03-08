@@ -30,6 +30,7 @@ const getData = () => {
         console.log(JSON.parse(data));
 
         lastPrice = JSON.parse(data).last[0];
+        module.exports = { lastPrice };
 
         console.log("Current last price:")
         console.log(lastPrice)
@@ -357,7 +358,6 @@ const server = app.listen(PORT, () => {
 });
 
 const getTrades = () => {
-  console.log(trades.length);
   return trades;
 };
 

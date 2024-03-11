@@ -1,7 +1,11 @@
 //Note this test is not working properly, but I cant really be bothered to fight with it anymore
 
-const { getData, closeServer } = require('../index.js'); // Replace with your file path
+const { getData, closeServer } = require('../index.js');
 jest.fn(); // Mock the https.get function
+
+beforeAll(async () => {
+  await closeServer();
+});
 
 describe('getData function', () => {
   let mockGet;
@@ -34,7 +38,9 @@ describe('getData function', () => {
   });
 
   test('should successfully fetch data and update lastPrice', async () => {
+    // Mock the https.get function
     mockGet.mockImplementation((url, options, callback) => {
+      // Simulate a mock response
       const mockResponse = new https.IncomingMessage();
       mockResponse.statusCode = 200;
       callback(mockResponse);
@@ -43,15 +49,21 @@ describe('getData function', () => {
       expect(options.headers).toEqual({ 'Accept': 'application/json' });
     });
   
-    await getData(); // Call getData
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Call getData function
+    await getData();
+  
+    // Wait for asynchronous operations to complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  
+    // Require lastPrice after getData has been called
     const { lastPrice } = require('../index.js');
-    console.log("After getData");
-    console.log("lastPrice:", lastPrice);
-    expect(lastPrice).toEqual(responseData.last[0]); // Check if lastPrice is updated correctly
+  
+    // Assert that lastPrice is updated correctly
+    expect(lastPrice).toEqual(responseData.last[0]);
   });
 });
 
 afterAll(async () => {
     await closeServer();
+    await new Promise(resolve => setTimeout(resolve, 2000));
 });

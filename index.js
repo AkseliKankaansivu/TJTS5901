@@ -119,6 +119,20 @@ app.post('/api/orders', (request, response) => {
       })
   }
 
+  // Ensure the quantity is an integer
+  if (!Number.isInteger(body.quantity)) {
+    return response.status(400).json({
+      error: 'quantity must be an integer'
+    });
+  }
+
+  // Ensure the quantity is larger than 0
+  if (body.quantity <= 0) {
+    return response.status(400).json({
+      error: 'quantity must be a positive integer'
+    });
+  }
+
   const order = {
       order: body.order,
       price: body.price,
@@ -150,7 +164,7 @@ app.post('/api/orders', (request, response) => {
   console.log("order price: " + order.price)
 
   // Check if the price of the order is inside our margin
-  if (order.price < lastPrice * 1.1 && order.price > lastPrice * 0.9) {
+  if (isPriceWithinRange(order.price, lastPrice)) {
     
     // Since the price is inside the margin, we need to send a response (200 OK)
     response.json(order)
@@ -182,6 +196,10 @@ app.post('/api/orders', (request, response) => {
     })
   }
 })
+
+const isPriceWithinRange = (price, lastPrice) => {
+  return price < lastPrice * 1.1 && price > lastPrice * 0.9;
+};
 
 // When an order has been submitted, check for a match and create a new trade if found
 const matchOrders = () => {
@@ -361,10 +379,14 @@ const getTrades = () => {
   return trades;
 };
 
+const getOrders = () => {
+  return orders;
+};
+
 // Function to close the server connection
 const closeServer = () => {
   server.close();
   console.log('Server connection closed.');
 };
 
-module.exports = { app, closeServer, getData, matchOrders, orders, getTrades };
+module.exports = { app, closeServer, getData, matchOrders, orders, getTrades, getOrders, isPriceWithinRange };

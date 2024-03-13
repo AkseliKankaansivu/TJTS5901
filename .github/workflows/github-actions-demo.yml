@@ -31,3 +31,21 @@ jobs:
     - run: npm test
     - name: Run Cucumber BDD tests
       run: npx cucumber-js
+
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+
+      - name: Analyze with CodeQL
+        uses: github/codeql-action/analyze@v1
+
+      - name: Upload SARIF report
+        uses: actions/upload-artifact@v2
+        with:
+          name: codeql-sarif-report
+          path: .codeql/results

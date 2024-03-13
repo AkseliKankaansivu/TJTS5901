@@ -265,7 +265,7 @@ const matchOrders = () => {
     // Now we should have found the oldest offer with the lowest price from all of the offers with a lower or equal price of the bid
     // Figure out the new quantities and the trade quantity
     let tradeQuantity = 0
-    if (latestOrder.quantity > lowestPriceOffer.quantity) {
+    if (latestOrder.quantity >= lowestPriceOffer.quantity) {
       tradeQuantity = lowestPriceOffer.quantity
       // Calculate the new quantity and remove filled offer
       orders = orders.filter((order) => order.id != lowestPriceOffer.id)
@@ -323,7 +323,7 @@ const matchOrders = () => {
     // Now we should have found the oldest bid with the highest price from all of the bids with a higher or equal price of the offer
     // Figure out the new quantities and the trade quantity
     let tradeQuantity = 0
-    if (latestOrder.quantity > highestPriceBid.quantity) {
+    if (latestOrder.quantity >= highestPriceBid.quantity) {
       tradeQuantity = highestPriceBid.quantity
       // Calculate the new quantity and remove filled bid
       orders = orders.filter((order) => order.id != highestPriceBid.id)

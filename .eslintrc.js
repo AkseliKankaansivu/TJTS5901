@@ -13,7 +13,7 @@ module.exports = {
     'linkbreak-style': [0, 'error', 'windows'],
     'no-empty-function': 'off',
 
-    // 临时关闭
+    // temperorily closed
     qutoes: 'off',
     // 'prettier/prettier': 'off',
     // '@typescript-eslint/no-this-alias': 'warn',
